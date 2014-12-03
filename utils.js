@@ -219,6 +219,8 @@ function encrypt(header, body, key, i, nonce, callback)
 function decrypt(payload, app, callback)
 {
 	switch (payload.header.encryption.method) {
+	case "none":			callback(0, payload.body);
+							break;
 	case "hmac-sha-256":	decryptHMACSHA256(payload, app, function(err, dec) {
 								callback(err, dec);
 							});
@@ -279,8 +281,12 @@ function validateBody(db, payload, obj, callback)
 			if (v.isValid) {
 				var now = Date.now();
 				
-				var success = { header: { requestId: payload.header.requestId, deviceId: payload.header.deviceId, type: payload.header.class.type, timestamp: now, ttl: payload.header.ttl, tokencardId: payload.header.encryption.tokencardId }, body: obj };
+				var success = { header: { requestId: payload.header.requestId, deviceId: payload.header.deviceId, type: payload.header.class.type, timestamp: now, ttl: payload.header.ttl, encryption: { method: payload.header.encryption.method } }, body: obj };
 		
+				if (payload.header.encryption.hasOwnProperty("tokencardId")) {
+					success.header.encryption["tokencardId"] = payload.header.encryption.tokencardId;
+				}
+				
 				// Check if the device exists
 				db.collection("devices", function(err, collection) {
 					if (err) {
@@ -453,7 +459,7 @@ module.exports = {
 							type: "object",
 							properties: {
 								method: { type: "string", enum: [ "none", "hmac-sha-256", "aes-256-gcm" ], required: true },
-								tokencardId: { type: "string" },
+								tokencardId: { type: "string", required: true },
 								keyIndex: { type: "integer", minimum: 0, maximum: 63 },
 								ivIndex: { type: "integer", minimum: 0, maximum: 63 },
 								nonce: { type: "integer", minimum: 0, maximum: 4294967296 }
@@ -495,14 +501,12 @@ module.exports = {
 									schema.properties["body"] = { type: "object", required: true };
 									break;
 			case "hmac-sha-256":	// HMAC-SHA-256 signature
-									schema.properties.header.properties.encryption.properties.tokencardId["required"] = true;
 									schema.properties.header.properties.encryption.properties.keyIndex["required"] = true;
 									schema.properties.header.properties.encryption.properties.nonce["required"] = true;
 									schema.properties["body"] = { type: "object", required: true };
 									schema.properties["icv"] = { type: "string", required: true };
 									break;
 			case "aes-256-gcm":		// AES-256-GCM encryption
-									schema.properties.header.properties.encryption.properties.tokencardId["required"] = true;
 									schema.properties.header.properties.encryption.properties.keyIndex["required"] = true;
 									schema.properties.header.properties.encryption.properties.ivIndex["required"] = true;
 									schema.properties.header.properties.encryption.properties.nonce["required"] = true;
@@ -521,41 +525,29 @@ module.exports = {
 					return;
 				}
 				
-				if (payload.header.encryption.method == "none") {
-					validateBody(db, payload, payload.body, function(err, result) {
-						if (err > 0) {
-							callback(true, { nack: payload.header["requestId"], reason: result, errorCode: err });
-							return;
-						}
+				// Get the application which sent the request 
+				getApplication(db, payload, function(err, app) {
+					if (err > 0) {
+						callback(true, { nack: payload.header["requestId"], reason: app, errorCode: err });
+						return;
+					}
 					
-						callback(false, { ack: payload.header["requestId"] }, result);
-					});
-				}
-				else {
-					// Get the application which sent the request 
-					getApplication(db, payload, function(err, app) {
+					decrypt(payload, app, function(err, dec) {
 						if (err > 0) {
-							callback(true, { nack: payload.header["requestId"], reason: app, errorCode: err });
+							callback(true, { nack: payload.header["requestId"], reason: dec, errorCode: err });
 							return;
 						}
 						
-						decrypt(payload, app, function(err, dec) {
+						validateBody(db, payload, dec, function(err, result) {
 							if (err > 0) {
-								callback(true, { nack: payload.header["requestId"], reason: dec, errorCode: err });
+								callback(true, { nack: payload.header["requestId"], reason: result, errorCode: err });
 								return;
 							}
-							
-							validateBody(db, payload, dec, function(err, result) {
-								if (err > 0) {
-									callback(true, { nack: payload.header["requestId"], reason: result, errorCode: err });
-									return;
-								}
-							
-								callback(false, { ack: payload.header["requestId"] }, result);
-							});
+						
+							callback(false, { ack: payload.header["requestId"] }, result);
 						});
 					});
-				}
+				});
 			}
 			else {
 				callback(true, { nack: payload.header["requestId"], reason: v.error, errorCode: 100003 });
