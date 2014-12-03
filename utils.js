@@ -183,6 +183,29 @@ function constructIV(public, private)
 
 function encrypt(header, body, key, i, nonce, callback)
 {
+	switch (header.encryption.method) {
+	case "none":			// No encryption
+							callback(0, body);
+							break;
+	case "hmac-sha-256":	// HMAC-SHA-256 signature
+							encryptHMACSHA256(header, body, key, function(err, enc) {
+								callback(err, enc);
+							});
+							break;
+	case "aes-256-gcm":		// AES-256-GCM encryption
+							encryptAES256GCM(header, body, key, i, nonce, function(err, enc) {
+								callback(err, enc);
+							});
+	}
+}
+
+function encryptHMACSHA256(header, body, key, callback)
+{
+	callback({ body: body, signature: "" });
+}
+
+function encryptAES256GCM(header, body, key, i, nonce, callback)
+{
 	var iv = constructIV(nonce, i);
 
 	try {
@@ -281,12 +304,8 @@ function validateBody(db, payload, obj, callback)
 			if (v.isValid) {
 				var now = Date.now();
 				
-				var success = { header: { requestId: payload.header.requestId, deviceId: payload.header.deviceId, type: payload.header.class.type, timestamp: now, ttl: payload.header.ttl, encryption: { method: payload.header.encryption.method } }, body: obj };
+				var success = { header: { requestId: payload.header.requestId, deviceId: payload.header.deviceId, type: payload.header.class.type, timestamp: now, ttl: payload.header.ttl, encryption: { method: payload.header.encryption.method, tokencardId: payload.header.encryption.tokencardId } }, body: obj };
 		
-				if (payload.header.encryption.hasOwnProperty("tokencardId")) {
-					success.header.encryption["tokencardId"] = payload.header.encryption.tokencardId;
-				}
-				
 				// Check if the device exists
 				db.collection("devices", function(err, collection) {
 					if (err) {
@@ -568,7 +587,7 @@ module.exports = {
 		}
 	},
 	
-	respond: function(requestId, deviceId, respondClass, tokencardId, tokens, nonce, payload, callback) {
+	respond: function(requestId, deviceId, respondClass, encryptionMethod, tokencardId, tokens, nonce, payload, callback) {
 		var response = { 
 			header: {
 				requestId: (requestId ? requestId : uuid.v4()),
@@ -576,23 +595,43 @@ module.exports = {
 				class: respondClass,
 				ttl: 0,
 				encryption: {
-					method: "aes-256-gcm",
+					method: encryptionMethod,
 					tokencardId: tokencardId,
-					keyIndex: Math.floor(Math.random() * tokens.length),
-					ivIndex: Math.floor(Math.random() * tokens.length),
-					nonce: nonce,
 				}
 			}
 		};
 	
+		switch (encryptionMethod) {
+		case "hmac-sha-256":	// HMAC-SHA-256 signature
+								response.header.encryption["keyIndex"] = Math.floor(Math.random() * tokens.length);
+								response.header.encryption["nonce"] = nonce;
+								break;
+		case "aes-256-gcm":		// AES-256-GCM encryption
+								response.header.encryption["keyIndex"] = Math.floor(Math.random() * tokens.length);
+								response.header.encryption["ivIndex"] = Math.floor(Math.random() * tokens.length);
+								response.header.encryption["nonce"] = nonce;
+								break;
+		}
+
 		encrypt(response.header, payload, tokens[response.header.encryption.keyIndex], tokens[response.header.encryption.ivIndex], response.header.encryption.nonce, function(err, enc) {
 			if (err > 0) {
 				callback({ error: enc, errorCode: err });
 				return;
 			}
 			
-			response.body = enc.ciphertext;
-			response.icv = enc.tag;
+			switch (encryptionMethod) {
+			case "none":			// No encryption
+									response.body = enc;
+									break;
+			case "hmac-sha-256":	// HMAC-SHA-256 signature
+									response.body = enc.body;
+									response.icv = enc.signature;
+									break;
+			case "aes-256-gcm":		// AES-256-GCM encryption
+									response.body = enc.ciphertext;
+									response.icv = enc.tag;
+									break;
+			}
 
 			callback(response);
 		});
