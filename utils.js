@@ -522,7 +522,7 @@ module.exports = {
 				}
 				
 				if (payload.header.encryption.method == "none") {
-					validateBody(db, payload, dec, function(err, result) {
+					validateBody(db, payload, payload.body, function(err, result) {
 						if (err > 0) {
 							callback(true, { nack: payload.header["requestId"], reason: result, errorCode: err });
 							return;
