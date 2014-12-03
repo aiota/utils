@@ -122,14 +122,14 @@ function getApplication(db, payload, callback)
 			return;
 		}
 
-		collection.findOne({ "_id": payload.header.tokens.tokencardId }, { tokens: 1 }, function(err, app) {
+		collection.findOne({ "_id": payload.header.encryption.tokencardId }, { tokens: 1 }, function(err, app) {
 			if (err) {
 				callback(200002, err);
 				return;
 			}
 			
 			if (app == null) {
-				callback(100004, "The header.tokens.tokencardId parameter in the request does not exist.");
+				callback(100004, "The header.encryption.tokencardId parameter in the request does not exist.");
 				return;
 			}
 			else {
@@ -151,11 +151,11 @@ function getApplication(db, payload, callback)
 				if (v.isValid) {
 					var numTokens = app["tokens"].length;
 					
-					if (payload.header.tokens.keyIndex >= numTokens) {
-						callback(100005, "The header.tokens.keyIndex parameter is invalid.");
+					if (payload.header.encryption.keyIndex >= numTokens) {
+						callback(100005, "The header.encryption.keyIndex parameter is invalid.");
 					}
-					else if (payload.header.tokens.ivIndex >= numTokens) {
-						callback(100006, "The header.tokens.ivIndex parameter is invalid.");
+					else if (payload.header.encryption.ivIndex >= numTokens) {
+						callback(100006, "The header.encryption.ivIndex parameter is invalid.");
 					}
 					else {
 						callback(0, app);
@@ -237,7 +237,7 @@ function decryptHMACSHA256(payload, app, callback)
 
 function decryptAES256GCM(payload, app, callback)
 {
-	var iv = constructIV(payload.header.tokens.nonce, app.tokens[payload.header.tokens.ivIndex]);
+	var iv = constructIV(payload.header.encryption.nonce, app.tokens[payload.header.encryption.ivIndex]);
 
 	try {
 		var aad = new Buffer(JSON.stringify(payload.header));
@@ -248,7 +248,7 @@ function decryptAES256GCM(payload, app, callback)
 	}
 	
 	try {
-		var decipher = crypto.createDecipheriv("aes-256-gcm", new Buffer(app.tokens[payload.header.tokens.keyIndex]), iv);
+		var decipher = crypto.createDecipheriv("aes-256-gcm", new Buffer(app.tokens[payload.header.encryption.keyIndex]), iv);
 		decipher.setAAD(aad);
 		decipher.setAuthTag(new Buffer(payload.icv, "hex"));
 		var dec = decipher.update(payload.body, "hex", "utf8");
@@ -279,7 +279,7 @@ function validateBody(db, payload, obj, callback)
 			if (v.isValid) {
 				var now = Date.now();
 				
-				var success = { header: { requestId: payload.header.requestId, deviceId: payload.header.deviceId, type: payload.header.class.type, timestamp: now, ttl: payload.header.ttl, tokencardId: payload.header.tokens.tokencardId }, body: obj };
+				var success = { header: { requestId: payload.header.requestId, deviceId: payload.header.deviceId, type: payload.header.class.type, timestamp: now, ttl: payload.header.ttl, tokencardId: payload.header.encryption.tokencardId }, body: obj };
 		
 				// Check if the device exists
 				db.collection("devices", function(err, collection) {
@@ -319,7 +319,7 @@ function validateBody(db, payload, obj, callback)
 							var v = validateJSONSchema(device, schema);
 							
 							if (v.isValid) {
-								if (device.apps.hasOwnProperty(payload.header.tokens.tokencardId)) {
+								if (device.apps.hasOwnProperty(payload.header.encryption.tokencardId)) {
 									// The application has been registered on this device
 									if ((payload.header.class.group == "system") && (payload.header.class.type == "register")) {
 										callback(100021, "The application has already been registered on this device.");
@@ -328,7 +328,7 @@ function validateBody(db, payload, obj, callback)
 										callback(0, success);
 									}
 									else if ((payload.header.class.group == "system") && (payload.header.class.type == "verify")) {
-										if (device.apps[payload.header.tokens.tokencardId].status == "pending") {
+										if (device.apps[payload.header.encryption.tokencardId].status == "pending") {
 											callback(0, success);
 										}
 										else {
@@ -337,7 +337,7 @@ function validateBody(db, payload, obj, callback)
 									}
 									else {
 										var set = {};
-										set["apps." + payload.header.tokens.tokencardId + ".lastRequest"] = Date.now();
+										set["apps." + payload.header.encryption.tokencardId + ".lastRequest"] = Date.now();
 										
 										collection.update({ _id: payload.header.deviceId }, { $set: set }, function(err, result) {
 											if (err) {
@@ -345,11 +345,11 @@ function validateBody(db, payload, obj, callback)
 												return;
 											}
 											
-											if (device.apps[payload.header.tokens.tokencardId].status == "registered") {
+											if (device.apps[payload.header.encryption.tokencardId].status == "registered") {
 												if (payload.header.class.group == "device") {
 													// Check if the session token is correct
-													if (device.apps[payload.header.tokens.tokencardId].session.id == payload.header.sessionId) {
-														if ((device.apps[payload.header.tokens.tokencardId].session.timeoutAt > 0) && (device.apps[payload.header.tokens.tokencardId].session.timeoutAt <= now)) {
+													if (device.apps[payload.header.encryption.tokencardId].session.id == payload.header.sessionId) {
+														if ((device.apps[payload.header.encryption.tokencardId].session.timeoutAt > 0) && (device.apps[payload.header.encryption.tokencardId].session.timeoutAt <= now)) {
 															callback(100014, "The session has timed out.");
 														}
 														else {
@@ -583,7 +583,8 @@ module.exports = {
 				deviceId: deviceId,
 				class: respondClass,
 				ttl: 0,
-				tokens: {
+				encryption: {
+					method: "aes-256-gcm",
 					tokencardId: tokencardId,
 					keyIndex: Math.floor(Math.random() * tokens.length),
 					ivIndex: Math.floor(Math.random() * tokens.length),
@@ -592,7 +593,7 @@ module.exports = {
 			}
 		};
 	
-		encrypt(response.header, payload, tokens[response.header.tokens.keyIndex], tokens[response.header.tokens.ivIndex], response.header.tokens.nonce, function(err, enc) {
+		encrypt(response.header, payload, tokens[response.header.encryption.keyIndex], tokens[response.header.encryption.ivIndex], response.header.encryption.nonce, function(err, enc) {
 			if (err > 0) {
 				callback({ error: enc, errorCode: err });
 				return;
