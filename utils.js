@@ -495,17 +495,17 @@ module.exports = {
 									schema.properties["body"] = { type: "object", required: true };
 									break;
 			case "hmac-sha-256":	// HMAC-SHA-256 signature
-									schema.properties.header.encryption.properties.tokenCardId["required"] = true;
-									schema.properties.header.encryption.properties.keyIndex["required"] = true;
-									schema.properties.header.encryption.properties.nonce["required"] = true;
+									schema.properties.header.properties.encryption.properties.tokenCardId["required"] = true;
+									schema.properties.header.properties.encryption.properties.keyIndex["required"] = true;
+									schema.properties.header.properties.encryption.properties.nonce["required"] = true;
 									schema.properties["body"] = { type: "object", required: true };
 									schema.properties["icv"] = { type: "string", required: true };
 									break;
 			case "aes-256-gcm":		// AES-256-GCM encryption
-									schema.properties.header.encryption.properties.tokenCardId["required"] = true;
-									schema.properties.header.encryption.properties.keyIndex["required"] = true;
-									schema.properties.header.encryption.properties.ivIndex["required"] = true;
-									schema.properties.header.encryption.properties.nonce["required"] = true;
+									schema.properties.header.properties.encryption.properties.tokenCardId["required"] = true;
+									schema.properties.header.properties.encryption.properties.keyIndex["required"] = true;
+									schema.properties.header.properties.encryption.properties.ivIndex["required"] = true;
+									schema.properties.header.properties.encryption.properties.nonce["required"] = true;
 									schema.properties["body"] = { type: "string", required: true };
 									schema.properties["icv"] = { type: "string", required: true };
 									break;
