@@ -362,6 +362,9 @@ function validateBody(db, payload, obj, callback)
 									}
 									else {
 										var set = {};
+										if (payload.header.class.group == "longpolling") {
+											set["apps." + payload.header.encryption.tokencardId + ".nonce"] = device.apps[payload.header.encryption.tokencardId].nonce + 1;
+										}
 										set["apps." + payload.header.encryption.tokencardId + ".lastRequest"] = Date.now();
 										
 										collection.update({ _id: payload.header.deviceId }, { $set: set }, function(err, result) {
@@ -396,7 +399,7 @@ function validateBody(db, payload, obj, callback)
 																	if (v.isValid) {																
 																		success.storage = def.storage;
 																		success["updateDevice"] = def.updateDevice;
-																	
+																								
 																		callback(0, success);
 																	}
 																	else {
@@ -411,11 +414,17 @@ function validateBody(db, payload, obj, callback)
 													}
 												}
 												else {
+													if (payload.header.class.group == "longpolling") {
+														success["nonce"] = Math.floor(Math.random() * 4294967296);
+													}
 													callback(0, success);
 												}
 											}
 											else {
 												if ((payload.header.class.group == "longpolling") || (payload.header.class.group == "response")) {
+													if (payload.header.class.group == "longpolling") {
+														success["nonce"] = Math.floor(Math.random() * 4294967296);
+													}
 													callback(0, success);
 												}
 												else {
