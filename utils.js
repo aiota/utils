@@ -685,4 +685,8 @@ module.exports = {
 		default:				return "";
 		}
 	}
+	
+	log: function(script, data) {
+		console.log("[ " + script + " (pid: " + process.pid + ") ] > " + new Date() + " > " + data);
+	}
 }
