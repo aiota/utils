@@ -697,7 +697,7 @@ module.exports = {
 								}							
 		default:				return "";
 		}
-	}
+	},
 	
 	log: function(script, data) {
 		var now = new Date();
