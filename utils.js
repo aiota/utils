@@ -699,8 +699,23 @@ module.exports = {
 		}
 	},
 	
-	log: function(script, data) {
+	log: function(processName, data) {
 		var now = new Date();
-		console.log("[ " + script + " (pid: " + process.pid + ") ] > " + getTimeString(now) + " > " + data);
+		console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + data);
+	},
+
+	processHeartbeat: function(processName, serverName, db) {
+		db.collection("running_processes", function(err, collection) {
+			if (err) {
+				log(processName, err);
+				return;
+			}
+	
+			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: Date.now() } }, { upsert: true }, function(error, objects) {
+				if (error) {
+					log(processName, error);
+				}
+			});
+		});
 	}
 }
