@@ -201,7 +201,15 @@ function encrypt(header, body, key, i, nonce, callback)
 
 function encryptHMACSHA256(header, body, key, callback)
 {
-	callback({ body: body, signature: "" });
+	try {
+		var hmac = crypto.createHmac("SHA256", key);
+		var obj = { header: header, body: body };
+		hmac.update(JSON.stringify(obj));
+		callback(0, { body: body, signature: hmac.digest("hex") });
+	}
+	catch(err) {
+		callback(100033, err);
+	}
 }
 
 function encryptAES256GCM(header, body, key, i, nonce, callback)
@@ -257,7 +265,23 @@ function decrypt(payload, app, callback)
 
 function decryptHMACSHA256(payload, app, callback)
 {
-	callback(0, payload.body);
+	try {
+		var hmac = crypto.createHmac("SHA256", app.tokens[payload.header.encryption.keyIndex]);
+		var obj = { header: payload.header, body: payload.body };
+		hmac.update(JSON.stringify(obj));
+		
+		var signature = hmac.digest("hex");
+		
+		if (signature == payload.icv) {
+			callback(0, payload.body);
+		}
+		else {
+			callback(100034, "Invalid message signature");
+		}
+	}
+	catch(err) {
+		callback(100033, err);
+	}
 }
 
 function decryptAES256GCM(payload, app, callback)
