@@ -699,21 +699,33 @@ module.exports = {
 		}
 	},
 	
-	log: function(processName, data) {
+	log: function(processName, server, db, data) {
 		var now = new Date();
-		console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + data);
+
+		db.collection("logs", function(err, collection) {
+			if (err) {
+				console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
+				return;
+			}
+	
+			collection.insert({ process: processName, server: serverName, pid: process.pid, timestamp: now, data: data }, function(err, result) {
+				if (err) {
+					console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
+				}
+			});
+		});
 	},
 
 	processHeartbeat: function(processName, serverName, db) {
 		db.collection("running_processes", function(err, collection) {
 			if (err) {
-				log(processName, err);
+				log(processName, serverName, db, err);
 				return;
 			}
 	
-			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: Date.now() } }, { upsert: true }, function(error, objects) {
-				if (error) {
-					log(processName, error);
+			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: Date.now() } }, { upsert: true }, function(err, objects) {
+				if (err) {
+					log(processName, serverName, db, err);
 				}
 			});
 		});
