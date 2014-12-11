@@ -492,11 +492,16 @@ function getTimeString(date)
 {
 	var month = date.getMonth() + 1;
 	var day = date.getDate();
+	var hrs = date.getHours();
+	var mins = date.getMinutes();
+	var secs = date.getSeconds();
 	
 	var str = (("" + day).length < 2 ? "0" : "") + day + "-";
 	str += (("" + month).length < 2 ? "0" : "") + month + "-";
 	str += date.getFullYear() + " ";
-	str += date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+	str += (("" + hrs).length < 2 ? "0" : "") + hrs + ":";
+	str += (("" + mins).length < 2 ? "0" : "") + mins + ":";
+	str += (("" + secs).length < 2 ? "0" : "") + secs;
 	
 	return str;
 }
@@ -702,18 +707,23 @@ module.exports = {
 	log: function(processName, server, db, data) {
 		var now = new Date();
 
-		db.collection("logs", function(err, collection) {
-			if (err) {
-				console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
-				return;
-			}
-	
-			collection.insert({ process: processName, server: serverName, pid: process.pid, timestamp: now, data: data }, function(err, result) {
+		if (db) {
+			db.collection("logs", function(err, collection) {
 				if (err) {
 					console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
+					return;
 				}
+		
+				collection.insert({ process: processName, server: serverName, pid: process.pid, timestamp: now, data: data }, function(err, result) {
+					if (err) {
+						console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
+					}
+				});
 			});
-		});
+		}
+		else {
+			console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(data));
+		}
 	},
 
 	processHeartbeat: function(processName, serverName, db) {
