@@ -488,6 +488,19 @@ function validateBody(db, payload, obj, callback)
 	}
 }
 
+function getTimeString(date)
+{
+	var month = date.getMonth() + 1;
+	var day = date.getDate();
+	
+	var str = (("" + day).length < 2 ? "0" : "") + day + "-";
+	str += (("" + month).length < 2 ? "0" : "") + month + "-";
+	str += date.getFullYear() + " ";
+	str += date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+	
+	return str;
+}
+			
 module.exports = {
 	validate: function(db, payload, callback) {		
 		var schema = { 
@@ -687,6 +700,7 @@ module.exports = {
 	}
 	
 	log: function(script, data) {
-		console.log("[ " + script + " (pid: " + process.pid + ") ] > " + new Date() + " > " + data);
+		var now = new Date();
+		console.log("[ " + script + " (pid: " + process.pid + ") ] > " + getTimeString(now) + " > " + data);
 	}
 }
