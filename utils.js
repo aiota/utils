@@ -704,7 +704,7 @@ module.exports = {
 		}
 	},
 	
-	log: function(processName, server, db, data) {
+	log: function(processName, serverName, db, data) {
 		var now = new Date();
 
 		if (db) {
