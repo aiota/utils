@@ -747,7 +747,7 @@ module.exports = {
 					return;
 				}
 		
-				collection.insert({ process: proc.script, server: proc.serverName, pid: data.pid, status: "running", runs: { restarts: 0, maxRuns: child.max }, launchTime: Date.now(), lastSync: Date.now() }, function(err, result) {
+				collection.insert({ process: proc.script, server: proc.serverName, pid: data.pid, status: "running", runs: { restarts: child.times, maxRuns: child.max }, launchTime: Date.now(), lastSync: Date.now() }, function(err, result) {
 					if (err) {
 						createLog(processName, serverName, db, err);
 					}
@@ -768,12 +768,12 @@ module.exports = {
 					return;
 				}
 		
-				collection.update({ process: proc.script, server: proc.serverName, pid: data.pid }, { $set: { "runs.restarts": child.times } }, function(err, result) {
+				collection.insert({ process: proc.script, server: proc.serverName, pid: data.pid, status: "running", runs: { restarts: child.times, maxRuns: child.max }, launchTime: Date.now(), lastSync: Date.now() }, function(err, result) {
 					if (err) {
 						createLog(processName, serverName, db, err);
 					}
 					
-					createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been restarted for the " + child.times + " time.");
+					createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been restarted.");
 				});
 			});
 		});
@@ -809,7 +809,22 @@ module.exports = {
 				return;
 			}
 	
-			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: 0, status: "ghost", runs: { restarts: 0, maxRuns: 0 } } }, { upsert: true }, function(err, objects) {
+			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: 0, status: "ghost", runs: { restarts: 0, maxRuns: 0 } } }, { upsert: true }, function(err, result) {
+				if (err) {
+					createLog(processName, serverName, db, err);
+				}
+			});
+		});
+	},
+
+	terminateProcess: function(processName, serverName, db) {
+		db.collection("running_processes", function(err, collection) {
+			if (err) {
+				createLog(processName, serverName, db, err);
+				return;
+			}
+	
+			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now(), status: "terminated" } }, function(err, result) {
 				if (err) {
 					createLog(processName, serverName, db, err);
 				}
