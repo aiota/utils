@@ -779,8 +779,6 @@ module.exports = {
 		});
 		
 		child.start();
-		
-		return child;
 	},
 
 	log: function(processName, serverName, db, data) {
@@ -794,7 +792,7 @@ module.exports = {
 				return;
 			}
 	
-			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: 0, status: "ghost", runs: { restarts: 0, maxRuns: 0 } } }, { upsert: true }, function(err, result) {
+			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: 0, status: "ghost", runs: { current: 0, maxRuns: 0 } } }, { upsert: true }, function(err, result) {
 				if (err) {
 					createLog(processName, serverName, db, err);
 				}
@@ -802,7 +800,7 @@ module.exports = {
 		});
 	},
 
-	terminateProcess: function(processName, serverName, db) {
+	terminateProcess: function(processName, serverName, db, callback) {
 		db.collection("running_processes", function(err, collection) {
 			if (err) {
 				createLog(processName, serverName, db, err);
@@ -813,6 +811,8 @@ module.exports = {
 				if (err) {
 					createLog(processName, serverName, db, err);
 				}
+				
+				callback();
 			});
 		});
 	}
