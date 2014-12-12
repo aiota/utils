@@ -728,7 +728,7 @@ module.exports = {
 		}
 	},
 	
-	startProcess: function(processName, serverName, db, proc) {
+	startProcess: function(db, proc) {
 		var child = new (forever.Monitor)(proc.directory + "/" + proc.module + "/" + proc.script, {
 			max: 3,
 			silent: true,
@@ -741,11 +741,11 @@ module.exports = {
 		});
 	
 		child.on("start", function () {
-			createLog(processName, serverName, db, proc.descr + " process (" + proc.script + ") has been started.");
+			createLog(proc.launchingProcess, proc.serverName, db, proc.descr + " process (" + proc.script + ") has been started.");
 		});
 	
 		child.on("exit", function () {
-			createLog(processName, serverName, db, proc.descr + " process (" + proc.script + ") has exited after 3 restarts");
+			createLog(proc.launchingProcess, proc.serverName, db, proc.descr + " process (" + proc.script + ") has exited after 3 restarts");
 		});
 		
 		child.start();
