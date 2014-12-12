@@ -749,7 +749,7 @@ module.exports = {
 		});
 	
 		child.on("restart", function (process, data) {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been restarted for the " child.times + " time.");
+			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been restarted for the " + child.times + " time.");
 		});
 	
 		child.on("exit", function () {
