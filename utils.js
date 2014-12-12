@@ -733,7 +733,7 @@ module.exports = {
 			max: proc.maxRuns,
 			silent: true,
 			uid: proc.script,
-			killTree: true,
+			killTree: false,
 			minUptime: 2000,
 			spinSleepTime: 1000,
 			args: [],
@@ -743,13 +743,13 @@ module.exports = {
 		child.on("start", function (process, data) {
 			db.collection("running_processes", function(err, collection) {
 				if (err) {
-					createLog(processName, serverName, db, err);
+					createLog(proc.launchingProcess, proc.serverName, db, err);
 					return;
 				}
 		
-				collection.insert({ process: proc.script, server: proc.serverName, pid: data.pid, status: "running", runs: { restarts: child.times, maxRuns: child.max }, launchTime: Date.now(), lastSync: Date.now() }, function(err, result) {
+				collection.insert({ process: proc.script, server: proc.serverName, pid: data.pid, status: "running", runs: { current: (child.times + 1), maxRuns: child.max }, launchTime: Date.now(), lastSync: Date.now() }, function(err, result) {
 					if (err) {
-						createLog(processName, serverName, db, err);
+						createLog(proc.launchingProcess, proc.serverName, db, err);
 					}
 					
 					createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been started.");
@@ -757,20 +757,16 @@ module.exports = {
 			});
 		});
 	
-		child.on("stop", function (process, data) {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been stopped by the user.");
-		});
-	
 		child.on("restart", function (process, data) {
 			db.collection("running_processes", function(err, collection) {
 				if (err) {
-					createLog(processName, serverName, db, err);
+					createLog(proc.launchingProcess, proc.serverName, db, err);
 					return;
 				}
 		
-				collection.insert({ process: proc.script, server: proc.serverName, pid: data.pid, status: "running", runs: { restarts: child.times, maxRuns: child.max }, launchTime: Date.now(), lastSync: Date.now() }, function(err, result) {
+				collection.insert({ process: proc.script, server: proc.serverName, pid: data.pid, status: "running", runs: { current: (child.times + 1), maxRuns: child.max }, launchTime: Date.now(), lastSync: Date.now() }, function(err, result) {
 					if (err) {
-						createLog(processName, serverName, db, err);
+						createLog(proc.launchingProcess, proc.serverName, db, err);
 					}
 					
 					createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been restarted.");
@@ -779,20 +775,7 @@ module.exports = {
 		});
 	
 		child.on("exit", function () {
-			db.collection("running_processes", function(err, collection) {
-				if (err) {
-					createLog(processName, serverName, db, err);
-					return;
-				}
-		
-				collection.update({ process: proc.script, server: proc.serverName, pid: data.pid }, { $set: { status: "exited" } }, function(err, result) {
-					if (err) {
-						createLog(processName, serverName, db, err);
-					}
-					
-					createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has exited (permanently).");
-				});
-			});
+			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has exited (permanently).");
 		});
 		
 		child.start();
