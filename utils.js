@@ -740,8 +740,8 @@ module.exports = {
 			outFile: proc.logFile
 		});
 	
-		child.on("start", function () {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has been started.");
+		child.on("start", function (process, data) {
+			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been started.");
 		});
 	
 		child.on("exit", function () {
