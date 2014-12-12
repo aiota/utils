@@ -733,7 +733,7 @@ module.exports = {
 			max: proc.maxRuns,
 			silent: true,
 			uid: proc.script,
-			killTree: true,
+			killTree: false,
 			minUptime: 2000,
 			spinSleepTime: 1000,
 			args: [],
