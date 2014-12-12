@@ -730,7 +730,7 @@ module.exports = {
 	
 	startProcess: function(db, proc) {
 		var child = new (forever.Monitor)(proc.directory + "/" + proc.module + "/" + proc.script, {
-			max: 3,
+			max: proc.maxRuns,
 			silent: true,
 			uid: proc.script,
 			killTree: true,
@@ -744,8 +744,16 @@ module.exports = {
 			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been started.");
 		});
 	
+		child.on("stop", function (process, data) {
+			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been stopped by the user.");
+		});
+	
+		child.on("restart", function (process, data) {
+			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been restarted for the " child.times + " time.");
+		});
+	
 		child.on("exit", function () {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has exited after 3 restarts");
+			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has exited (permanently).");
 		});
 		
 		child.start();
