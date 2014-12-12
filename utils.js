@@ -779,6 +779,8 @@ module.exports = {
 		});
 		
 		child.start();
+		
+		return child;
 	},
 
 	log: function(processName, serverName, db, data) {
