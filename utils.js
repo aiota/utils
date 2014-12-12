@@ -709,7 +709,7 @@ module.exports = {
 		var child = new (forever.Monitor)(proc.directory + "/" + proc.module + "/" + proc.script, {
 			max: 3,
 			silent: true,
-			uid: uid,
+			uid: proc.script,
 			killTree: true,
 			minUptime: 2000,
 			spinSleepTime: 1000,
