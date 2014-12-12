@@ -741,11 +741,11 @@ module.exports = {
 		});
 	
 		child.on("start", function () {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.descr + " process (" + proc.script + ") has been started.");
+			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has been started.");
 		});
 	
 		child.on("exit", function () {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.descr + " process (" + proc.script + ") has exited after 3 restarts");
+			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has exited after 3 restarts");
 		});
 		
 		child.start();
