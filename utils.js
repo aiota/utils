@@ -718,11 +718,11 @@ module.exports = {
 		});
 	
 		child.on("start", function () {
-			log(processName, serverName, db, descr + " process (" + proc.script + ") has been started.");
+			this.log(processName, serverName, db, descr + " process (" + proc.script + ") has been started.");
 		});
 	
 		child.on("exit", function () {
-			log(processName, serverName, db, descr + " process (" + proc.script + ") has exited after 3 restarts");
+			this.log(processName, serverName, db, descr + " process (" + proc.script + ") has exited after 3 restarts");
 		});
 		
 		child.start();
@@ -753,13 +753,13 @@ module.exports = {
 	processHeartbeat: function(processName, serverName, db) {
 		db.collection("running_processes", function(err, collection) {
 			if (err) {
-				log(processName, serverName, db, err);
+				this.log(processName, serverName, db, err);
 				return;
 			}
 	
 			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: Date.now() } }, { upsert: true }, function(err, objects) {
 				if (err) {
-					log(processName, serverName, db, err);
+					this.log(processName, serverName, db, err);
 				}
 			});
 		});
