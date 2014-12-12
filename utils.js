@@ -2,6 +2,7 @@
 var crypto = require("crypto");
 var uuid = require("node-uuid");
 var jsonValidate = require("jsonschema").validate;
+var forever = require("forever-monitor");
 
 var bodySchemas = {
 	"system":		{
@@ -704,6 +705,29 @@ module.exports = {
 		}
 	},
 	
+	startProcess: function(processName, serverName, db, proc) {
+		var child = new (forever.Monitor)(proc.directory + "/" + proc.module + "/" + proc.script, {
+			max: 3,
+			silent: true,
+			uid: uid,
+			killTree: true,
+			minUptime: 2000,
+			spinSleepTime: 1000,
+			args: [],
+			outFile: proc.logFile
+		});
+	
+		child.on("start", function () {
+			log(processName, serverName, db, descr + " process (" + proc.script + ") has been started.");
+		});
+	
+		child.on("exit", function () {
+			log(processName, serverName, db, descr + " process (" + proc.script + ") has exited after 3 restarts");
+		});
+		
+		child.start();
+	},
+
 	log: function(processName, serverName, db, data) {
 		var now = new Date();
 

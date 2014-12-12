@@ -1,6 +1,6 @@
 {
 	"name": "aiota-utils",
-	"version": "0.0.18",
+	"version": "0.0.19",
 	"description": "AIoTA Utility Functions",
 	"main": "utils.js",
 	"repository": {
@@ -22,6 +22,7 @@
 	],
   	"dependencies": {
 		"crypto": ">=0.0.3",
+		"forever-monitor": ">=1.5.2",
 		"jsonschema": ">=1.0.0",
 		"node-uuid": ">=1.4.1"
 	},
