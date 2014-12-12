@@ -489,6 +489,29 @@ function validateBody(db, payload, obj, callback)
 	}
 }
 
+function createLog(processName, serverName, db, data)
+{
+	var now = new Date();
+
+	if (db) {
+		db.collection("logs", function(err, collection) {
+			if (err) {
+				console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
+				return;
+			}
+	
+			collection.insert({ process: processName, server: serverName, pid: process.pid, timestamp: now, data: data }, function(err, result) {
+				if (err) {
+					console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
+				}
+			});
+		});
+	}
+	else {
+		console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(data));
+	}
+}
+
 function getTimeString(date)
 {
 	var month = date.getMonth() + 1;
@@ -718,48 +741,30 @@ module.exports = {
 		});
 	
 		child.on("start", function () {
-			this.log(processName, serverName, db, proc.descr + " process (" + proc.script + ") has been started.");
+			createLog(processName, serverName, db, proc.descr + " process (" + proc.script + ") has been started.");
 		});
 	
 		child.on("exit", function () {
-			this.log(processName, serverName, db, proc.descr + " process (" + proc.script + ") has exited after 3 restarts");
+			createLog(processName, serverName, db, proc.descr + " process (" + proc.script + ") has exited after 3 restarts");
 		});
 		
 		child.start();
 	},
 
 	log: function(processName, serverName, db, data) {
-		var now = new Date();
-
-		if (db) {
-			db.collection("logs", function(err, collection) {
-				if (err) {
-					console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
-					return;
-				}
-		
-				collection.insert({ process: processName, server: serverName, pid: process.pid, timestamp: now, data: data }, function(err, result) {
-					if (err) {
-						console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(err));
-					}
-				});
-			});
-		}
-		else {
-			console.log("[" + processName + " (pid: " + process.pid + ")] > " + getTimeString(now) + " > " + JSON.stringify(data));
-		}
+		createLog(processName, serverName, db, data);
 	},
 
 	processHeartbeat: function(processName, serverName, db) {
 		db.collection("running_processes", function(err, collection) {
 			if (err) {
-				this.log(processName, serverName, db, err);
+				createLog(processName, serverName, db, err);
 				return;
 			}
 	
 			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: Date.now() } }, { upsert: true }, function(err, objects) {
 				if (err) {
-					this.log(processName, serverName, db, err);
+					createLog(processName, serverName, db, err);
 				}
 			});
 		});
