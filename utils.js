@@ -718,11 +718,11 @@ module.exports = {
 		});
 	
 		child.on("start", function () {
-			this.log(processName, serverName, db, descr + " process (" + proc.script + ") has been started.");
+			this.log(processName, serverName, db, proc.descr + " process (" + proc.script + ") has been started.");
 		});
 	
 		child.on("exit", function () {
-			this.log(processName, serverName, db, descr + " process (" + proc.script + ") has exited after 3 restarts");
+			this.log(processName, serverName, db, proc.descr + " process (" + proc.script + ") has exited after 3 restarts");
 		});
 		
 		child.start();

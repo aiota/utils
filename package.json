@@ -1,6 +1,6 @@
 {
 	"name": "aiota-utils",
-	"version": "0.0.21",
+	"version": "0.0.22",
 	"description": "AIoTA Utility Functions",
 	"main": "utils.js",
 	"repository": {
