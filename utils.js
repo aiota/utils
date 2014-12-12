@@ -741,7 +741,20 @@ module.exports = {
 		});
 	
 		child.on("start", function (process, data) {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been started.");
+			db.collection("running_processes", function(err, collection) {
+				if (err) {
+					createLog(processName, serverName, db, err);
+					return;
+				}
+		
+				collection.insert({ process: proc.script, server: proc.serverName, pid: data.pid, status: "running", runs: { restarts: 0, maxRuns: child.max }, launchTime: Date.now(), lastSync: Date.now() }, function(err, result) {
+					if (err) {
+						createLog(processName, serverName, db, err);
+					}
+					
+					createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been started.");
+				});
+			});
 		});
 	
 		child.on("stop", function (process, data) {
@@ -749,11 +762,37 @@ module.exports = {
 		});
 	
 		child.on("restart", function (process, data) {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been restarted for the " + child.times + " time.");
+			db.collection("running_processes", function(err, collection) {
+				if (err) {
+					createLog(processName, serverName, db, err);
+					return;
+				}
+		
+				collection.update({ process: proc.script, server: proc.serverName, pid: data.pid }, { $set: { "runs.restarts": child.times } }, function(err, result) {
+					if (err) {
+						createLog(processName, serverName, db, err);
+					}
+					
+					createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ", pid " + data.pid + ") has been restarted for the " + child.times + " time.");
+				});
+			});
 		});
 	
 		child.on("exit", function () {
-			createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has exited (permanently).");
+			db.collection("running_processes", function(err, collection) {
+				if (err) {
+					createLog(processName, serverName, db, err);
+					return;
+				}
+		
+				collection.update({ process: proc.script, server: proc.serverName, pid: data.pid }, { $set: { status: "exited" } }, function(err, result) {
+					if (err) {
+						createLog(processName, serverName, db, err);
+					}
+					
+					createLog(proc.launchingProcess, proc.serverName, db, proc.description + " process (" + proc.script + ") has exited (permanently).");
+				});
+			});
 		});
 		
 		child.start();
@@ -763,14 +802,14 @@ module.exports = {
 		createLog(processName, serverName, db, data);
 	},
 
-	processHeartbeat: function(processName, serverName, db) {
+	heartbeat: function(processName, serverName, db) {
 		db.collection("running_processes", function(err, collection) {
 			if (err) {
 				createLog(processName, serverName, db, err);
 				return;
 			}
 	
-			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: Date.now() } }, { upsert: true }, function(err, objects) {
+			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: 0, status: "ghost", runs: { restarts: 0, maxRuns: 0 } } }, { upsert: true }, function(err, objects) {
 				if (err) {
 					createLog(processName, serverName, db, err);
 				}
