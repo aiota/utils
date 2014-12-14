@@ -737,7 +737,9 @@ module.exports = {
 			minUptime: 2000,
 			spinSleepTime: 1000,
 			args: [],
-			outFile: proc.logFile
+			logFile: proc.logFile,
+			outFile: proc.logFile,
+			errFile: proc.logFile
 		});
 	
 		child.on("start", function (process, data) {
