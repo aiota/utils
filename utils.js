@@ -3,6 +3,7 @@ var crypto = require("crypto");
 var uuid = require("node-uuid");
 var jsonValidate = require("jsonschema").validate;
 var forever = require("forever-monitor");
+var processes = [];
 
 var bodySchemas = {
 	"system":		{
@@ -727,12 +728,31 @@ module.exports = {
 		default:				return "";
 		}
 	},
+
+	log: function(processName, serverName, db, data) {
+		createLog(processName, serverName, db, data);
+	},
+
+	heartbeat: function(processName, serverName, db) {
+		db.collection("running_processes", function(err, collection) {
+			if (err) {
+				createLog(processName, serverName, db, err);
+				return;
+			}
 	
+			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: 0, status: "ghost", runs: { current: 0, maxRuns: 0 } } }, { upsert: true }, function(err, result) {
+				if (err) {
+					createLog(processName, serverName, db, err);
+				}
+			});
+		});
+	},
+
 	startProcess: function(db, proc) {
 		var child = new (forever.Monitor)(proc.directory + "/" + proc.module + "/" + proc.script, {
 			max: proc.maxRuns,
 			silent: true,
-			uid: proc.script,
+			uid: proc.uid,
 			killTree: true,
 			minUptime: 2000,
 			spinSleepTime: 1000,
@@ -781,25 +801,8 @@ module.exports = {
 		});
 		
 		child.start();
-	},
-
-	log: function(processName, serverName, db, data) {
-		createLog(processName, serverName, db, data);
-	},
-
-	heartbeat: function(processName, serverName, db) {
-		db.collection("running_processes", function(err, collection) {
-			if (err) {
-				createLog(processName, serverName, db, err);
-				return;
-			}
-	
-			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now() }, $setOnInsert: { launchTime: 0, status: "ghost", runs: { current: 0, maxRuns: 0 } } }, { upsert: true }, function(err, result) {
-				if (err) {
-					createLog(processName, serverName, db, err);
-				}
-			});
-		});
+		
+		processes.push(child);
 	},
 
 	terminateProcess: function(processName, serverName, db, callback) {
