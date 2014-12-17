@@ -806,13 +806,27 @@ module.exports = {
 	},
 
 	restartProcess: function(pid) {
-		
+		for (var i = 0; i < processes.length; ++i) {
+			if (processes[i].child.pid == pid) {
+				processes[i].restart();
+				i += processes.length;
+			}
+		}
+	},
+
+	stopProcess: function(pid) {
+		for (var i = 0; i < processes.length; ++i) {
+			if (processes[i].child.pid == pid) {
+				processes[i].kill(true);
+				i += processes.length;
+			}
+		}
 	},
 
 	killProcess: function(pid) {
-		process.kill(pids[i], "SIGTERM");
+		process.kill(pid, "SIGTERM");
 	},
-	
+		
 	terminateProcess: function(processName, serverName, db, callback) {
 		db.collection("running_processes", function(err, collection) {
 			if (err) {
