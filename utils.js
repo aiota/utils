@@ -827,8 +827,6 @@ module.exports = {
 					if (err) {
 						createLog(processName, serverName, db, err);
 					}
-					
-					callback();
 				});
 			});
 		}
@@ -856,8 +854,6 @@ module.exports = {
 					if (err) {
 						createLog(processName, serverName, db, err);
 					}
-					
-					callback();
 				});
 			});
 		}
