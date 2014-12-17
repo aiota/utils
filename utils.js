@@ -805,7 +805,7 @@ module.exports = {
 		processes.push(child);
 	},
 
-	restartProcess: function(processName, serverName, pid) {
+	restartProcess: function(processName, serverName, pid, db) {
 		var found = false;
 		
 		for (var i = 0; i < processes.length; ++i) {
@@ -834,7 +834,7 @@ module.exports = {
 		}
 	},
 
-	stopProcess: function(processName, serverName, pid) {
+	stopProcess: function(processName, serverName, pid, db) {
 		var found = false;
 		
 		for (var i = 0; i < processes.length; ++i) {
