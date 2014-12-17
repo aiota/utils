@@ -805,6 +805,14 @@ module.exports = {
 		processes.push(child);
 	},
 
+	restartProcess: function(pid) {
+		
+	},
+
+	killProcess: function(pid) {
+		process.kill(pids[i], "SIGTERM");
+	},
+	
 	terminateProcess: function(processName, serverName, db, callback) {
 		db.collection("running_processes", function(err, collection) {
 			if (err) {
