@@ -806,56 +806,46 @@ module.exports = {
 	},
 
 	restartProcess: function(processName, serverName, pid, db) {
-		var found = false;
-		
 		for (var i = 0; i < processes.length; ++i) {
 			if (processes[i].child.pid == pid) {
-				processes[i].restart();
-				found = true;
-				i += processes.length;
-			}
-		}
-	
-		if (found) {	
-			db.collection("running_processes", function(err, collection) {
-				if (err) {
-					createLog(processName, serverName, db, err);
-					return;
-				}
-		
-				collection.update({ process: processName, server: serverName, pid: pid }, { $set: { lastSync: Date.now(), status: "restarted" } }, function(err, result) {
+				db.collection("running_processes", function(err, collection) {
 					if (err) {
 						createLog(processName, serverName, db, err);
+						return;
 					}
+			
+					collection.update({ process: processName, server: serverName, pid: pid }, { $set: { lastSync: Date.now(), status: "restarted" } }, function(err, result) {
+						if (err) {
+							createLog(processName, serverName, db, err);
+						}
+						
+						processes[i].restart();
+					});
 				});
-			});
+				i += processes.length;
+			}
 		}
 	},
 
 	stopProcess: function(processName, serverName, pid, db) {
-		var found = false;
-		
 		for (var i = 0; i < processes.length; ++i) {
 			if (processes[i].child.pid == pid) {
-				processes[i].stop();
-				found = true;
-				i += processes.length;
-			}
-		}
-	
-		if (found) {	
-			db.collection("running_processes", function(err, collection) {
-				if (err) {
-					createLog(processName, serverName, db, err);
-					return;
-				}
-		
-				collection.update({ process: processName, server: serverName, pid: pid }, { $set: { lastSync: Date.now(), status: "stopped" } }, function(err, result) {
+				db.collection("running_processes", function(err, collection) {
 					if (err) {
 						createLog(processName, serverName, db, err);
+						return;
 					}
+			
+					collection.update({ process: processName, server: serverName, pid: pid }, { $set: { lastSync: Date.now(), status: "stopped" } }, function(err, result) {
+						if (err) {
+							createLog(processName, serverName, db, err);
+						}
+						
+						processes[i].kill(true);
+					});
 				});
-			});
+				i += processes.length;
+			}
 		}
 	},
 
