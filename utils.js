@@ -808,6 +808,8 @@ module.exports = {
 	restartProcess: function(processName, serverName, pid, db) {
 		for (var i = 0; i < processes.length; ++i) {
 			if (processes[i].child.pid == pid) {
+				var index = i;
+				
 				db.collection("running_processes", function(err, collection) {
 					if (err) {
 						createLog(processName, serverName, db, err);
@@ -819,9 +821,10 @@ module.exports = {
 							createLog(processName, serverName, db, err);
 						}
 						
-						processes[i].restart();
+						processes[index].restart();
 					});
 				});
+				
 				i += processes.length;
 			}
 		}
@@ -830,6 +833,8 @@ module.exports = {
 	stopProcess: function(processName, serverName, pid, db) {
 		for (var i = 0; i < processes.length; ++i) {
 			if (processes[i].child.pid == pid) {
+				var index = i;
+				
 				db.collection("running_processes", function(err, collection) {
 					if (err) {
 						createLog(processName, serverName, db, err);
@@ -841,9 +846,10 @@ module.exports = {
 							createLog(processName, serverName, db, err);
 						}
 						
-						processes[i].kill(true);
+						processes[index].kill(true);
 					});
 				});
+
 				i += processes.length;
 			}
 		}
