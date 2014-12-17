@@ -866,7 +866,7 @@ module.exports = {
 				return;
 			}
 	
-			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now(), status: "terminated" } }, function(err, result) {
+			collection.update({ process: processName, server: serverName, pid: process.pid }, { $set: { lastSync: Date.now(), status: "killed" } }, function(err, result) {
 				if (err) {
 					createLog(processName, serverName, db, err);
 				}
