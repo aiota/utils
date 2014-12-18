@@ -776,7 +776,7 @@ module.exports = {
 			killTree: true,
 			minUptime: 2000,
 			spinSleepTime: 1000,
-			args: [],
+			args: proc.args,
 			logFile: proc.logFile,
 			outFile: proc.logFile,
 			errFile: proc.logFile
