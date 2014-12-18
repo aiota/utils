@@ -729,6 +729,26 @@ module.exports = {
 		}
 	},
 
+	getConfig: function(db, callback) {
+		db.collection("config", function(err, collection) {
+			if (err) {
+				console.log(err);
+				callback(null);
+				return;
+			}
+	
+			collection.findOne({ _id: 0 }, function(err, config) {
+				if (err) {
+					console.log(err);
+					callback(null);
+				}
+				else {
+					callback(config);
+				}
+			});
+		});
+	},
+	
 	log: function(processName, serverName, db, data) {
 		createLog(processName, serverName, db, data);
 	},
